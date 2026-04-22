@@ -33,7 +33,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=0
       - STORAGE_TYPE=redis
-      - MAIN_API_BASE_URL=http://app:8081/users
+      - MAIN_API_BASE_URL=https://crosswords.jujacloud.tech/users
     volumes:
       - bot-data:/app/data
       - ./logs:/app/logs
