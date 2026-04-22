@@ -1,17 +1,18 @@
 from pydantic_settings import BaseSettings
 from pydantic import SecretStr
-from typing import Optional
 
 class Settings(BaseSettings):
     # Telegram
     BOT_TOKEN: SecretStr
     BOT_WEBHOOK_URL: str
     BOT_WEBHOOK_SECRET: SecretStr
-    TELEGRAM_BOT_INTERNAL_SECRET: SecretStr
-
+    
     # Java Backend API
     MAIN_API_BASE_URL: str = "http://app:8081/users"
     MAIN_API_BACKEND_SECRET: SecretStr
+    
+    # Internal API (для приема дайджестов от бэкенда)
+    TELEGRAM_BOT_INTERNAL_SECRET: SecretStr
     
     # Redis
     REDIS_HOST: str = "telegram-bot-redis"
@@ -22,9 +23,12 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/bot_db.sqlite"
     
+    # Frontend URL
+    FRONTEND_URL: str = "https://crosswords-corpus.press"
+    
     # Logging
     LOG_LEVEL: str = "INFO"
-
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
