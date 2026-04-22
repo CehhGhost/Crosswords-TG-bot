@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: telegram-bot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - shared_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cehhghost/crosswords_telegram_bot:0.1.0
+    container_name: telegram-bot-app
+    ports:
+      - "9010:9010"
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=telegram-bot-redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - STORAGE_TYPE=redis
+      - MAIN_API_BASE_URL=http://app:8081/users
+    volumes:
+      - bot-data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - shared_network
+
+volumes:
+  redis-data:
+  bot-data:
+
+networks:
+  shared_network:
+    external: true
