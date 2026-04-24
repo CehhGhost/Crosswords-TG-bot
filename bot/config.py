@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     BOT_WEBHOOK_SECRET: SecretStr
     
     # Java Backend API
-    MAIN_API_BASE_URL: str = "http://app:8081/users"
+    MAIN_API_BASE_URL: str = "https://crosswords.jujacloud.tech/api/users"
     MAIN_API_BACKEND_SECRET: SecretStr
     
     # Internal API (для приема дайджестов от бэкенда)
