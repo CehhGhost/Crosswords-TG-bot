@@ -56,7 +56,7 @@ async def handle_regular_start(message: types.Message, session: AsyncSession):
 
 async def handle_binding(message: types.Message, args: str, session: AsyncSession):
     """Обработка привязки Telegram аккаунта"""
-    processing_msg = await message.answer("🔄 Обрабатываю запрос на привязку...")
+    processing_msg = await message.answer("🔄 Обрабатываю запрос на привязку...", parse_mode=None)
     
     try:
         params = args[5:]  # Убираем "bind_"
@@ -65,7 +65,7 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
         if len(parts) != 2:
             await processing_msg.edit_text(
                 "❌ Неверный формат ссылки привязки.\n"
-                "Пожалуйста, получите новую ссылку в личном кабинете."
+                "Пожалуйста, получите новую ссылку в личном кабинете.", parse_mode=None
             )
             return
         
@@ -74,7 +74,7 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
         try:
             user_id = int(user_id_str)
         except ValueError:
-            await processing_msg.edit_text("❌ Некорректный идентификатор пользователя")
+            await processing_msg.edit_text("❌ Некорректный идентификатор пользователя", parse_mode=None)
             return
         
         # Проверяем существующую привязку
@@ -84,7 +84,7 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
         if existing.scalar_one_or_none():
             await processing_msg.edit_text(
                 "⚠️ Ваш Telegram уже привязан к аккаунту.\n"
-                "Если хотите привязать другой аккаунт, сначала отвяжите текущий в личном кабинете."
+                "Если хотите привязать другой аккаунт, сначала отвяжите текущий в личном кабинете.", parse_mode=None
             )
             return
         
@@ -97,7 +97,7 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
         
         if not result:
             await processing_msg.edit_text(
-                "❌ Сервис временно недоступен.\nПопробуйте позже."
+                "❌ Сервис временно недоступен.\nПопробуйте позже.", parse_mode=None
             )
             return
         
@@ -114,7 +114,8 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
                 f"👤 Пользователь: {result.get('userName', 'пользователь')}\n"
                 f"🆔 ID: {result['userId']}\n\n"
                 f"Теперь вы можете использовать бота.",
-                reply_markup=main_menu_keyboard()
+                reply_markup=main_menu_keyboard(),
+                parse_mode="HTML"
             )
             logger.info(f"User {user_id} linked Telegram {message.from_user.id}")
         else:
@@ -129,10 +130,10 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
             elif "not found" in error.lower():
                 error = "Пользователь не найден."
             
-            await processing_msg.edit_text(f"❌ Не удалось привязать аккаунт:\n{error}")
+            await processing_msg.edit_text(f"❌ Не удалось привязать аккаунт:\n{error}", parse_mode=None)
             
     except Exception as e:
         logger.exception(f"Binding error: {e}")
         await processing_msg.edit_text(
-            "❌ Произошла ошибка.\nПопробуйте позже или обратитесь в поддержку."
+            "❌ Произошла ошибка.\nПопробуйте позже или обратитесь в поддержку.", parse_mode=None
         )
