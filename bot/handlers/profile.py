@@ -16,7 +16,7 @@ async def cmd_profile(message: types.Message, website_user_id: int):
     
     if user_data:
         verified = "✅" if user_data.get("verified") else "❌"
-        mobile = "✅" if user_data.get("mobileNotifications") else "❌"
+        mobile = "✅" if user_data.get("telegramNotifications") else "❌"
         
         text = (
             f"👤 <b>Профиль пользователя</b>\n\n"
