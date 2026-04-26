@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, HTTPException
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import Update
+from aiogram.types import Update, MenuButtonDefault
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
@@ -46,6 +46,7 @@ dp.include_router(digests.router)
 dp.include_router(subscribe.router)
 dp.include_router(help.router)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_models()
@@ -54,6 +55,9 @@ async def lifespan(app: FastAPI):
         secret_token=settings.BOT_WEBHOOK_SECRET.get_secret_value()
     )
     logger.info(f"Webhook set to {settings.BOT_WEBHOOK_URL}/webhook")
+
+    await bot.set_chat_menu_button(menu_button=MenuButtonDefault())
+    logger.info("Telegram menu button reset to default")
     
     # Команды бота
     await bot.set_my_commands([
