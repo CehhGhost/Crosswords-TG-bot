@@ -110,9 +110,14 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
         if existing_link and existing_link.website_user_id == user_id:
             await processing_msg.edit_text(
                 "✅ Ваш Telegram уже привязан к этому аккаунту.\n\n"
+                "Теперь вы можете получать дайджесты и уведомления в Telegram.\n\n"
                 "Используйте /profile для просмотра профиля.",
-                reply_markup=main_menu_keyboard(),
                 parse_mode=None
+            )
+
+            await message.answer(
+                "Выберите действие:",
+                reply_markup=main_menu_keyboard()
             )
             return
 
@@ -167,9 +172,14 @@ async def handle_binding(message: types.Message, args: str, session: AsyncSessio
             "✅ Аккаунт успешно привязан!\n\n"
             "Теперь вы можете получать дайджесты и уведомления в Telegram.\n\n"
             "Используйте /profile для просмотра профиля.",
-            reply_markup=main_menu_keyboard(),
             parse_mode=None
         )
+
+        await message.answer(
+            "Выберите действие:",
+            reply_markup=main_menu_keyboard()
+        )
+        return
 
     except Exception:
         logger.exception("Error while processing Telegram binding")
