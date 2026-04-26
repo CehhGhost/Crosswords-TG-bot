@@ -40,7 +40,7 @@ async def cmd_subscribe(message: types.Message, website_user_id: int):
     )
 
 @router.callback_query(lambda c: c.data == "toggle_notifications")
-async def toggle_notifications(callback: types.CallbackQuery, website_user_id: int):
+async def toggle_notifications(callback: types.CallbackQuery):
     """Переключение уведомлений"""
     
     user_data = await api_client.get_user_by_telegram_id(callback.from_user.id)
