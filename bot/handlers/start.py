@@ -28,9 +28,25 @@ async def handler_start(message: types.Message, session: AsyncSession):
 
 async def handle_regular_start(message: types.Message, session: AsyncSession):
     """Обработка обычного запуска бота"""
+
     stmt = select(UserLink).where(UserLink.telegram_id == message.from_user.id)
     result = await session.execute(stmt)
     link = result.scalar_one_or_none()
+
+    if not link:
+        backend_user = await api_client.get_user_by_telegram_id(message.from_user.id)
+
+        if backend_user:
+            link = UserLink(
+                telegram_id=message.from_user.id,
+                website_user_id=backend_user["id"]
+            )
+            session.add(link)
+            await session.commit()
+
+            logger.info(
+                f"User {message.from_user.id} synced from backend on /start"
+            )
     
     if link:
         await message.answer(
@@ -56,81 +72,118 @@ async def handle_regular_start(message: types.Message, session: AsyncSession):
 
 async def handle_binding(message: types.Message, args: str, session: AsyncSession):
     """Обработка привязки Telegram аккаунта"""
-    processing_msg = await message.answer("🔄 Обрабатываю запрос на привязку...", parse_mode=None)
-    
+    processing_msg = await message.answer(
+        "🔄 Обрабатываю запрос на привязку...",
+        parse_mode=None
+    )
+
     try:
         params = args[5:]  # Убираем "bind_"
         parts = params.split('_', 1)
-        
+
         if len(parts) != 2:
             await processing_msg.edit_text(
                 "❌ Неверный формат ссылки привязки.\n"
-                "Пожалуйста, получите новую ссылку в личном кабинете.", parse_mode=None
+                "Пожалуйста, получите новую ссылку в личном кабинете.",
+                parse_mode=None
             )
             return
-        
+
         user_id_str, token = parts
-        
+
         try:
             user_id = int(user_id_str)
         except ValueError:
-            await processing_msg.edit_text("❌ Некорректный идентификатор пользователя", parse_mode=None)
-            return
-        
-        # Проверяем существующую привязку
-        existing = await session.execute(
-            select(UserLink).where(UserLink.telegram_id == message.from_user.id)
-        )
-        if existing.scalar_one_or_none():
             await processing_msg.edit_text(
-                "⚠️ Ваш Telegram уже привязан к аккаунту.\n"
-                "Если хотите привязать другой аккаунт, сначала отвяжите текущий в личном кабинете.", parse_mode=None
+                "❌ Некорректный идентификатор пользователя",
+                parse_mode=None
             )
             return
-        
-        # Отправляем запрос на бэкенд
+
+        # Проверяем локальную привязку
+        existing_result = await session.execute(
+            select(UserLink).where(UserLink.telegram_id == message.from_user.id)
+        )
+        existing_link = existing_result.scalar_one_or_none()
+
+        # Если локально уже привязан к этому же пользователю — не считаем это ошибкой
+        if existing_link and existing_link.website_user_id == user_id:
+            await processing_msg.edit_text(
+                "✅ Ваш Telegram уже привязан к этому аккаунту.\n\n"
+                "Используйте /profile для просмотра профиля.",
+                reply_markup=main_menu_keyboard(),
+                parse_mode=None
+            )
+            return
+
+        # Если локально привязан к другому пользователю — тогда запрещаем
+        if existing_link and existing_link.website_user_id != user_id:
+            await processing_msg.edit_text(
+                "⚠️ Ваш Telegram уже привязан к другому аккаунту.\n"
+                "Если хотите привязать другой аккаунт, сначала отвяжите текущий в личном кабинете.",
+                parse_mode=None
+            )
+            return
+
+        # Отправляем запрос на backend
         result = await api_client.link_telegram(
             telegram_id=message.from_user.id,
             user_id=user_id,
             link_token=token
         )
-        
+
         if not result:
             await processing_msg.edit_text(
-                "❌ Сервис временно недоступен.\nПопробуйте позже.", parse_mode=None
+                "❌ Сервис временно недоступен.\nПопробуйте позже.",
+                parse_mode=None
             )
             return
-        
-        if result.get("success"):
-            new_link = UserLink(
-                telegram_id=message.from_user.id,
-                website_user_id=result["userId"]
-            )
-            session.add(new_link)
-            await session.commit()
-            
+
+        if not result.get("success"):
             await processing_msg.edit_text(
-                f"✅ <b>Telegram успешно привязан!</b>\n\n"
-                f"👤 Пользователь: {result.get('userName', 'пользователь')}\n"
-                f"🆔 ID: {result['userId']}\n\n"
-                f"Теперь вы можете использовать бота.",
-                reply_markup=main_menu_keyboard(),
-                parse_mode="HTML"
+                f"❌ Не удалось привязать аккаунт:\n{result.get('error', 'Неизвестная ошибка')}",
+                parse_mode=None
             )
-            logger.info(f"User {user_id} linked Telegram {message.from_user.id}")
+            return
+
+        # Backend успешно привязал аккаунт.
+        # Теперь безопасно синхронизируем локальную БД бота.
+        existing_result = await session.execute(
+            select(UserLink).where(UserLink.telegram_id == message.from_user.id)
+        )
+        existing_link = existing_result.scalar_one_or_none()
+
+        if existing_link:
+            existing_link.website_user_id = user_id
         else:
-            error = result.get("error", "Неизвестная ошибка")
-            
-            if "already linked" in error.lower():
-                error = "Этот Telegram уже привязан к другому аккаунту."
-            elif "expired" in error.lower():
-                error = "Срок действия ссылки истек. Получите новую ссылку."
-            elif "invalid" in error.lower():
-                error = "Недействительная ссылка привязки."
-            elif "not found" in error.lower():
-                error = "Пользователь не найден."
-            
-            await processing_msg.edit_text(f"❌ Не удалось привязать аккаунт:\n{error}", parse_mode=None)
+            session.add(UserLink(
+                telegram_id=message.from_user.id,
+                website_user_id=user_id
+            ))
+
+        await session.commit()
+
+        await processing_msg.edit_text(
+            "✅ Аккаунт успешно привязан!\n\n"
+            "Теперь вы можете получать дайджесты и уведомления в Telegram.\n\n"
+            "Используйте /profile для просмотра профиля.",
+            reply_markup=main_menu_keyboard(),
+            parse_mode=None
+        )
+
+    except Exception:
+        logger.exception("Error while processing Telegram binding")
+
+        try:
+            await session.rollback()
+        except Exception:
+            logger.exception("Error while rolling back session after binding failure")
+
+        await processing_msg.edit_text(
+            "❌ Произошла ошибка.\n"
+            "Попробуйте позже или обратитесь в поддержку.",
+            parse_mode=None
+        )
             
     except Exception as e:
         logger.exception(f"Binding error: {e}")
