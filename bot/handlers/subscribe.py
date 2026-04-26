@@ -18,12 +18,12 @@ async def cmd_subscribe(message: types.Message, website_user_id: int):
         await message.answer("❌ Не удалось получить настройки")
         return
     
-    mobile_enabled = user_data.get("mobileNotifications", False)
-    status = "✅ Включены" if mobile_enabled else "❌ Отключены"
+    telegram_enabled = user_data.get("telegramNotifications", False)
+    status = "✅ Включены" if telegram_enabled else "❌ Отключены"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
-            text="🔕 Отключить уведомления" if mobile_enabled else "🔔 Включить уведомления",
+            text="🔕 Отключить уведомления" if telegram_enabled else "🔔 Включить уведомления",
             callback_data="toggle_notifications"
         )],
         [InlineKeyboardButton(
@@ -49,10 +49,11 @@ async def toggle_notifications(callback: types.CallbackQuery):
         await callback.answer("❌ Ошибка получения настроек", show_alert=True)
         return
     
-    current = user_data.get("mobileNotifications", False)
+    current = user_data.get("telegramNotifications", False)
+
     success = await api_client.update_telegram_settings(
         callback.from_user.id,
-        mobile_notifications=not current
+        telegram_notifications=not current
     )
     
     if success:

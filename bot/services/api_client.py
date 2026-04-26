@@ -66,14 +66,13 @@ class MainApiClient:
                 logger.error(f"Get digests error: {e}")
                 return None
     
-    async def update_telegram_settings(self, telegram_id: int, mobile_notifications: bool) -> bool:
-        """PUT /users/telegram/settings - Обновление настроек уведомлений"""
+    async def update_telegram_settings(self, telegram_id: int, telegram_notifications: bool) -> bool:
         url = f"{self.base_url}/telegram/settings"
         payload = {
             "telegramId": telegram_id,
-            "mobileNotifications": mobile_notifications
+            "telegramNotifications": telegram_notifications
         }
-        
+
         async with aiohttp.ClientSession(headers=self.headers) as session:
             try:
                 async with session.put(url, json=payload) as resp:
