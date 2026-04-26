@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/bot_db.sqlite"
     
     # Frontend URL
-    FRONTEND_URL: str = "https://crosswords-corpus.press"
+    FRONTEND_URL: str = "https://crosswords.jujacloud.tech"
     
     # Logging
     LOG_LEVEL: str = "INFO"

@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from bot.services.api_client import api_client
+from bot.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ async def cmd_subscribe(message: types.Message, website_user_id: int):
         )],
         [InlineKeyboardButton(
             text="📋 Управление подписками на сайте",
-            url="https://crosswords-corpus.press/profile/subscriptions"
+            url=f"{settings.FRONTEND_URL}/digests"
         )]
     ])
     
